@@ -1,4 +1,4 @@
-import Header from '@/components/Header';
+import Header from '../components/Header';
 import { BookOpen, Play, ChevronRight, LayoutGrid } from 'lucide-react';
 
 export default function Home() {
