@@ -1,68 +1,69 @@
-import React from 'react';
-import { BookOpen, Trophy, Target } from 'lucide-react';
+import Header from '@/components/Header';
+import { BookOpen, Play, ChevronRight, LayoutGrid } from 'lucide-react';
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-slate-50 p-4 font-sans">
-      {/* Header de Status */}
-      <div className="max-w-md mx-auto bg-white rounded-3xl p-6 shadow-sm border border-slate-100 mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-              <span className="text-indigo-600 font-bold">LV 1</span>
-            </div>
-            <div>
-              <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Estudante</p>
-              <p className="font-bold text-slate-800">Seu Nome</p>
-            </div>
+    <div className="min-h-screen bg-[#F8FAFC]">
+      <Header />
+      
+      <main className="max-w-md mx-auto p-4 pb-24">
+        {/* Banner de XP do Dia */}
+        <section className="mb-8">
+          <div className="flex justify-between items-end mb-2">
+            <span className="text-sm font-black text-slate-400 uppercase italic">Progresso Diário</span>
+            <span className="text-xs font-bold text-indigo-600">450 / 1000 XP</span>
           </div>
-          <div className="flex items-center gap-1 bg-amber-50 px-3 py-1 rounded-full border border-amber-100">
-            <Trophy className="w-4 h-4 text-amber-500" />
-            <span className="text-amber-700 font-bold text-sm">150</span>
+          <div className="h-4 w-full bg-slate-200 rounded-full p-1 shadow-inner">
+            <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full w-[45%] shadow-[0_0_10px_rgba(79,70,229,0.4)]"></div>
           </div>
-        </div>
-        
-        {/* Barra de XP */}
-        <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
-          <div className="bg-indigo-500 h-full w-1/3 rounded-full"></div>
-        </div>
-      </div>
+        </section>
 
-      {/* Card Principal de Estudo */}
-      <div className="max-w-md mx-auto">
-        <h2 className="text-slate-800 font-bold text-lg mb-4 flex items-center gap-2">
-          <Target className="w-5 h-5 text-indigo-500" />
-          Missão do Dia
-        </h2>
-        
-        <div className="bg-indigo-600 rounded-3xl p-6 text-white shadow-lg shadow-indigo-200 relative overflow-hidden">
-          <div className="relative z-10">
-            <h3 className="text-xl font-bold mb-2">Caso: Dificuldade de Alfabetização</h3>
-            <p className="text-indigo-100 text-sm mb-6 leading-relaxed">
-              Analise o comportamento de um aluno de 7 anos com sinais de dislexia...
-            </p>
-            <button className="w-full bg-white text-indigo-600 font-bold py-4 rounded-2xl hover:bg-indigo-50 transition-colors shadow-md">
-              Começar Desafio
+        {/* Card de Missão */}
+        <section className="relative group cursor-pointer mb-8">
+          <div className="absolute inset-0 bg-indigo-600 rounded-[2.5rem] rotate-2 scale-105 opacity-10 group-hover:rotate-1 transition-transform"></div>
+          <div className="relative bg-white p-8 rounded-[2.5rem] border-2 border-slate-100 shadow-xl overflow-hidden">
+            <div className="flex justify-between items-start mb-6">
+              <div className="bg-indigo-100 p-3 rounded-2xl text-indigo-600">
+                <BookOpen size={24} />
+              </div>
+              <span className="bg-rose-100 text-rose-600 text-[10px] font-black px-3 py-1 rounded-full uppercase">Caso Crítico</span>
+            </div>
+            
+            <h2 className="text-2xl font-black text-slate-800 mb-2 leading-tight">Dificuldade de Alfabetização</h2>
+            <p className="text-slate-500 text-sm leading-relaxed mb-8">Lucas, 7 anos, apresenta inversão de letras e desatenção. Qual sua primeira intervenção?</p>
+            
+            <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-5 rounded-2xl flex items-center justify-center gap-3 shadow-[0_8px_0_rgb(49,46,129)] active:translate-y-1 active:shadow-none transition-all">
+              JOGAR AGORA <Play size={20} fill="currentColor" />
             </button>
           </div>
-          {/* Círculo decorativo */}
-          <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-indigo-500 rounded-full opacity-50"></div>
-        </div>
+        </section>
 
-        {/* Trilhas */}
-        <div className="grid grid-cols-2 gap-4 mt-6">
-          <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-            <BookOpen className="w-6 h-6 text-emerald-500 mb-2" />
-            <p className="font-bold text-slate-800">Psicologia</p>
-            <p className="text-xs text-slate-500">12 casos novos</p>
-          </div>
-          <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-            <BookOpen className="w-6 h-6 text-rose-500 mb-2" />
-            <p className="font-bold text-slate-800">Pedagogia</p>
-            <p className="text-xs text-slate-500">8 casos novos</p>
-          </div>
+        {/* Categorias */}
+        <h3 className="text-slate-800 font-black text-lg mb-4 italic uppercase tracking-tighter">Suas Trilhas</h3>
+        <div className="grid grid-cols-1 gap-4">
+          <TrilhaCard area="Psicologia" cor="bg-blue-500" casos="12" />
+          <TrilhaCard area="Pedagogia" cor="bg-emerald-500" casos="08" />
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function TrilhaCard({ area, cor, casos }: any) {
+  return (
+    <div className="bg-white p-5 rounded-3xl flex items-center justify-between border-2 border-slate-100 hover:border-indigo-200 transition-colors cursor-pointer group">
+      <div className="flex items-center gap-4">
+        <div className={`${cor} w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg`}>
+          <LayoutGrid size={20} />
+        </div>
+        <div>
+          <h4 className="font-black text-slate-800">{area}</h4>
+          <p className="text-xs font-bold text-slate-400 tracking-wide uppercase">{casos} Casos disponíveis</p>
         </div>
       </div>
-    </main>
+      <div className="bg-slate-50 p-2 rounded-xl group-hover:bg-indigo-50 transition-colors">
+        <ChevronRight className="text-slate-300 group-hover:text-indigo-500" />
+      </div>
+    </div>
   );
 }
