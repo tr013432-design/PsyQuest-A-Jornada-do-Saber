@@ -2,50 +2,67 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Fundo "Mágico" com Grid suave */
 body {
-  background-color: #F0F4F8;
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: #f3f4f6;
+  background-image: 
+    radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+    radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
+    radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  font-family: 'Nunito', system-ui, sans-serif; /* Fonte redondinha fica mais "game" */
 }
 
-/* Animação de Entrada Suave */
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+/* Padrão de Grid Tecnológico por cima do fundo */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+  linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+  z-index: -1;
+  pointer-events: none;
 }
 
-/* Animação de Tremer (Erro) */
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
+/* CLASSE MÁGICA: Botão 3D que "afunda" */
+.btn-3d {
+  transition: all 0.1s;
+  transform: translateY(0);
+  border-bottom-width: 6px;
 }
 
-/* Animação de Pop (Acerto) */
-@keyframes pop {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-  100% { transform: scale(1); }
+.btn-3d:active {
+  transform: translateY(4px); /* O botão desce fisicamente */
+  border-bottom-width: 2px; /* A borda diminui para dar ilusão de profundidade */
+  box-shadow: none !important;
 }
 
-/* Classes utilitárias para usar no React */
-.animate-slide-up {
-  animation: slideUp 0.5s ease-out forwards;
-}
-
-.animate-shake {
-  animation: shake 0.3s ease-in-out;
-  border-color: #ef4444 !important; /* Vermelho */
-  background-color: #fef2f2 !important;
-}
-
-.animate-pop {
-  animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  border-color: #22c55e !important; /* Verde */
-  background-color: #f0fdf4 !important;
-}
-
-/* Efeito de Vidro para Modais */
-.glass-effect {
+/* Cartão com efeito de vidro */
+.glass-card {
   background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Animações */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.5); }
+  50% { box-shadow: 0 0 40px rgba(99, 102, 241, 0.8); }
+}
+
+.glow-effect {
+  animation: pulse-glow 2s infinite;
 }
