@@ -1,6 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
-// REMOVI O IMPORT DO USE-SOUND PARA EVITAR ERROS
+import React, { useState, useEffect, useRef } from 'react';
 import Header from '../components/Header';
 import Navbar from '../components/Navbar';
 import { CASOS_PSICOLOGIA } from '../lib/database';
@@ -18,15 +17,26 @@ export default function Home() {
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
-  // --- SISTEMA DE SOM NATIVO (INFALÍVEL) ---
-  const playSound = (fileName: string) => {
+  // --- REFERÊNCIAS DE ÁUDIO ---
+  // CORREÇÃO AQUI: Mudamos de /sounds/ para /sons/ para bater com sua pasta
+  const clickAudioRef = useRef<HTMLAudioElement>(null);
+  const correctAudioRef = useRef<HTMLAudioElement>(null);
+  const wrongAudioRef = useRef<HTMLAudioElement>(null);
+
+  const playSound = (type: 'click' | 'correct' | 'wrong') => {
     if (!soundEnabled) return;
+    
+    // Reseta o áudio anterior
+    if (clickAudioRef.current) { clickAudioRef.current.pause(); clickAudioRef.current.currentTime = 0; }
+    if (correctAudioRef.current) { correctAudioRef.current.pause(); correctAudioRef.current.currentTime = 0; }
+    if (wrongAudioRef.current) { wrongAudioRef.current.pause(); wrongAudioRef.current.currentTime = 0; }
+
     try {
-      const audio = new Audio(`/sounds/${fileName}`);
-      audio.volume = 0.5;
-      audio.play().catch(e => console.log("Bloqueio de áudio do navegador:", e));
-    } catch (error) {
-      console.error("Erro ao tocar som:", error);
+      if (type === 'click' && clickAudioRef.current) clickAudioRef.current.play();
+      if (type === 'correct' && correctAudioRef.current) correctAudioRef.current.play();
+      if (type === 'wrong' && wrongAudioRef.current) wrongAudioRef.current.play();
+    } catch (e) {
+      console.log("Erro de áudio:", e);
     }
   };
 
@@ -36,7 +46,7 @@ export default function Home() {
   }, []);
 
   const generateNewCase = async () => {
-    playSound('click.mp3');
+    playSound('click');
     setLoadingAI(true);
     try {
       const response = await fetch('/api/generate', { method: 'POST' });
@@ -54,15 +64,14 @@ export default function Home() {
     const correct = index === activeCase.correctIndex;
     setIsCorrect(correct);
     
-    // TOCA O SOM NA HORA
     if (correct) {
-      playSound('correct.mp3');
+      playSound('correct');
       setCombo(combo + 1);
       const newXp = xp + 50 + (combo * 10);
       setXp(newXp);
       localStorage.setItem('psyquest_xp', newXp.toString());
     } else {
-      playSound('wrong.mp3');
+      playSound('wrong');
       setCombo(0);
       setLives((prev) => Math.max(0, prev - 1));
     }
@@ -70,7 +79,7 @@ export default function Home() {
   };
 
   const nextCase = () => {
-    playSound('click.mp3');
+    playSound('click');
     setGameState('home');
     setSelectedOption(null);
     setIsCorrect(null);
@@ -80,40 +89,37 @@ export default function Home() {
     }
   };
 
-  const toggleSound = () => {
-    setSoundEnabled(!soundEnabled);
-    if (!soundEnabled) playSound('click.mp3'); // Toca um som para confirmar que ligou
-  };
-
   return (
     <div className="min-h-screen pb-32 text-slate-800">
+      {/* --- ELEMENTOS DE ÁUDIO INVISÍVEIS (CORRIGIDOS PARA /sons/) --- */}
+      <audio ref={clickAudioRef} src="/sons/click.mp3" preload="auto" />
+      <audio ref={correctAudioRef} src="/sons/correct.mp3" preload="auto" />
+      <audio ref={wrongAudioRef} src="/sons/wrong.mp3" preload="auto" />
+
       <Header />
       
       <main className="max-w-md mx-auto p-4 pt-6">
         
-        {/* --- HUD FLUTUANTE & CONTROLE DE SOM --- */}
+        {/* HUD e Controles */}
         {gameState === 'home' && (
           <div className="flex justify-between items-center mb-8 px-2">
             <div className="flex gap-2">
-               <div className="bg-slate-900/40 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-2 flex items-center gap-2 text-white shadow-lg transition-transform hover:scale-105">
+               <div className="bg-slate-900/40 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-2 flex items-center gap-2 text-white shadow-lg">
                  <Heart className="fill-rose-500 text-rose-500 animate-pulse" size={24} />
                  <span className="font-black text-xl">{lives}</span>
                </div>
-               
-               <div className="bg-slate-900/40 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-2 flex items-center gap-2 text-white shadow-lg transition-transform hover:scale-105">
+               <div className="bg-slate-900/40 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-2 flex items-center gap-2 text-white shadow-lg">
                  <Flame className={`${combo > 1 ? 'fill-orange-500 text-orange-500 animate-bounce' : 'text-slate-400'}`} size={24} />
                  <span className="font-black text-xl">{combo}x</span>
                </div>
             </div>
-
-            {/* Botão de Mute */}
-            <button onClick={toggleSound} className="bg-white/10 p-3 rounded-full text-white backdrop-blur-md border border-white/10 hover:bg-white/20 active:scale-95 transition-all">
+            <button onClick={() => setSoundEnabled(!soundEnabled)} className="bg-white/10 p-3 rounded-full text-white backdrop-blur-md hover:bg-white/20">
                {soundEnabled ? <Volume2 size={20} /> : <VolumeX size={20} className="text-rose-400" />}
             </button>
           </div>
         )}
 
-        {/* --- TELA INICIAL --- */}
+        {/* TELA HOME */}
         {gameState === 'home' && (
           <div className="space-y-8 animate-in slide-in-from-bottom-8 duration-700">
             <div className="relative group">
@@ -135,9 +141,9 @@ export default function Home() {
                   </p>
 
                   <button 
-                    onClick={() => { playSound('click.mp3'); setGameState('playing'); }}
+                    onClick={() => { playSound('click'); setGameState('playing'); }}
                     disabled={loadingAI || lives === 0}
-                    className="btn-3d w-full bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-800 p-5 rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-indigo-500/30 disabled:opacity-50 disabled:border-slate-400 disabled:bg-slate-400"
+                    className="btn-3d w-full bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-800 p-5 rounded-2xl flex items-center justify-center gap-3 shadow-lg disabled:opacity-50"
                   >
                     <span className="text-xl font-black tracking-wide">
                       {lives > 0 ? 'COMEÇAR MISSÃO' : 'SEM VIDAS'}
@@ -145,12 +151,8 @@ export default function Home() {
                     <Play size={24} fill="currentColor" />
                   </button>
 
-                  <button 
-                    onClick={generateNewCase}
-                    className="mt-4 text-indigo-400 text-xs font-black uppercase tracking-widest hover:text-indigo-600 flex items-center justify-center gap-1 mx-auto transition-colors"
-                  >
-                    {loadingAI ? <Loader2 className="animate-spin w-3 h-3"/> : <Sparkles className="w-3 h-3" />}
-                    Gerar Outro Caso
+                  <button onClick={generateNewCase} className="mt-4 text-indigo-400 text-xs font-black uppercase tracking-widest hover:text-indigo-600 flex items-center justify-center gap-1 mx-auto transition-colors">
+                    {loadingAI ? <Loader2 className="animate-spin w-3 h-3"/> : <Sparkles className="w-3 h-3" />} Gerar Outro Caso
                   </button>
                 </div>
               </div>
@@ -158,52 +160,36 @@ export default function Home() {
 
             <h3 className="text-white/80 font-black uppercase text-sm tracking-widest pl-4">Suas Trilhas</h3>
             <div className="grid grid-cols-2 gap-4">
-              <div onClick={() => playSound('click.mp3')} className="btn-3d bg-white border-slate-200 p-4 rounded-3xl flex flex-col items-center gap-2 cursor-pointer active:scale-95">
-                <div className="w-12 h-12 bg-blue-100 text-blue-500 rounded-2xl flex items-center justify-center">
-                  <Brain size={24} />
-                </div>
+              <div onClick={() => playSound('click')} className="btn-3d bg-white border-slate-200 p-4 rounded-3xl flex flex-col items-center gap-2 cursor-pointer active:scale-95">
+                <div className="w-12 h-12 bg-blue-100 text-blue-500 rounded-2xl flex items-center justify-center"><Brain size={24} /></div>
                 <span className="font-black text-slate-700">Psicologia</span>
               </div>
-              <div onClick={() => playSound('click.mp3')} className="btn-3d bg-white border-slate-200 p-4 rounded-3xl flex flex-col items-center gap-2 cursor-pointer active:scale-95 grayscale opacity-60">
-                <div className="w-12 h-12 bg-emerald-100 text-emerald-500 rounded-2xl flex items-center justify-center">
-                  <Star size={24} />
-                </div>
+              <div onClick={() => playSound('click')} className="btn-3d bg-white border-slate-200 p-4 rounded-3xl flex flex-col items-center gap-2 cursor-pointer active:scale-95 grayscale opacity-60">
+                <div className="w-12 h-12 bg-emerald-100 text-emerald-500 rounded-2xl flex items-center justify-center"><Star size={24} /></div>
                 <span className="font-black text-slate-700">Pedagogia</span>
               </div>
             </div>
           </div>
         )}
 
-        {/* --- TELA DE GAMEPLAY --- */}
+        {/* TELA DE JOGO */}
         {gameState === 'playing' && (
           <div className="animate-in zoom-in-95 duration-300">
              <div className="flex items-center gap-4 mb-8">
-                <button onClick={() => { playSound('click.mp3'); setGameState('home'); }} className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center text-white backdrop-blur-sm">
-                  <XCircle size={20} />
-                </button>
+                <button onClick={() => { playSound('click'); setGameState('home'); }} className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center text-white backdrop-blur-sm"><XCircle size={20} /></button>
                 <div className="flex-1 h-4 bg-slate-900/30 rounded-full overflow-hidden border border-white/10">
-                  <div className="h-full bg-gradient-to-r from-indigo-400 to-purple-400 w-2/3 rounded-full animate-pulse shadow-[0_0_15px_rgba(167,139,250,0.5)]"></div>
+                  <div className="h-full bg-gradient-to-r from-indigo-400 to-purple-400 w-2/3 rounded-full animate-pulse"></div>
                 </div>
              </div>
-
              <div className="bg-white rounded-[2.5rem] p-8 shadow-2xl border-b-8 border-slate-200 min-h-[50vh] flex flex-col justify-between">
                 <div>
                   <span className="text-indigo-500 font-black text-xs uppercase tracking-widest mb-4 block">Pergunta do Caso</span>
-                  <h2 className="text-2xl font-black text-slate-800 leading-tight mb-8">
-                    {activeCase.question}
-                  </h2>
+                  <h2 className="text-2xl font-black text-slate-800 leading-tight mb-8">{activeCase.question}</h2>
                 </div>
-                
                 <div className="space-y-3">
                   {activeCase.options.map((opt: string, i: number) => (
-                    <button 
-                      key={i}
-                      onClick={() => handleAnswer(i)}
-                      className="btn-3d w-full bg-slate-50 hover:bg-indigo-50 border-slate-200 text-slate-600 font-bold p-5 rounded-2xl text-left flex items-center gap-4 group active:border-indigo-500"
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-white border-2 border-slate-200 flex items-center justify-center font-black text-slate-400 group-hover:border-indigo-500 group-hover:text-indigo-500 transition-colors">
-                        {['A', 'B', 'C', 'D'][i]}
-                      </div>
+                    <button key={i} onClick={() => handleAnswer(i)} className="btn-3d w-full bg-slate-50 hover:bg-indigo-50 border-slate-200 text-slate-600 font-bold p-5 rounded-2xl text-left flex items-center gap-4 group active:border-indigo-500">
+                      <div className="w-8 h-8 rounded-lg bg-white border-2 border-slate-200 flex items-center justify-center font-black text-slate-400 group-hover:border-indigo-500 group-hover:text-indigo-500 transition-colors">{['A', 'B', 'C', 'D'][i]}</div>
                       <span className="flex-1">{opt}</span>
                     </button>
                   ))}
@@ -212,42 +198,20 @@ export default function Home() {
           </div>
         )}
 
-        {/* --- TELA DE FEEDBACK --- */}
+        {/* TELA DE FEEDBACK */}
         {gameState === 'feedback' && (
           <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in">
-             <div className={`w-full max-w-sm bg-white rounded-[2.5rem] p-8 text-center shadow-2xl animate-in slide-in-from-bottom-10 
-               ${isCorrect ? 'border-b-8 border-green-200' : 'border-b-8 border-rose-200'}`}>
-                
-                <div className={`w-24 h-24 mx-auto -mt-20 rounded-full flex items-center justify-center border-8 border-[#f3f4f6] shadow-xl mb-6
-                  ${isCorrect ? 'bg-green-500 text-white' : 'bg-rose-500 text-white'}`}>
+             <div className={`w-full max-w-sm bg-white rounded-[2.5rem] p-8 text-center shadow-2xl animate-in slide-in-from-bottom-10 ${isCorrect ? 'border-b-8 border-green-200' : 'border-b-8 border-rose-200'}`}>
+                <div className={`w-24 h-24 mx-auto -mt-20 rounded-full flex items-center justify-center border-8 border-[#f3f4f6] shadow-xl mb-6 ${isCorrect ? 'bg-green-500 text-white' : 'bg-rose-500 text-white'}`}>
                   {isCorrect ? <CheckCircle2 size={48} className="animate-bounce" /> : <XCircle size={48} className="animate-pulse" />}
                 </div>
-
-                <h2 className={`text-3xl font-black mb-2 uppercase italic ${isCorrect ? 'text-green-600' : 'text-rose-600'}`}>
-                  {isCorrect ? 'Brilhante!' : 'Ops!'}
-                </h2>
-                
-                <p className="text-slate-500 font-bold text-sm mb-6 px-4">
-                  {isCorrect 
-                    ? `Você ganhou +${50 + (combo * 10)} XP! Continue o combo!` 
-                    : 'Não desanime. Analise o feedback abaixo:'}
-                </p>
-
+                <h2 className={`text-3xl font-black mb-2 uppercase italic ${isCorrect ? 'text-green-600' : 'text-rose-600'}`}>{isCorrect ? 'Brilhante!' : 'Ops!'}</h2>
+                <p className="text-slate-500 font-bold text-sm mb-6 px-4">{isCorrect ? `Você ganhou +${50 + (combo * 10)} XP! Continue o combo!` : 'Não desanime. Analise o feedback abaixo:'}</p>
                 <div className="bg-slate-50 p-4 rounded-2xl text-left border border-slate-100 mb-8">
-                  <div className="flex items-center gap-2 mb-2 text-indigo-600 font-black text-xs uppercase tracking-widest">
-                    <Brain size={14} /> Explicação
-                  </div>
-                  <p className="text-slate-600 text-sm font-medium leading-relaxed">
-                    {activeCase.explanation}
-                  </p>
+                  <div className="flex items-center gap-2 mb-2 text-indigo-600 font-black text-xs uppercase tracking-widest"><Brain size={14} /> Explicação</div>
+                  <p className="text-slate-600 text-sm font-medium leading-relaxed">{activeCase.explanation}</p>
                 </div>
-
-                <button 
-                  onClick={nextCase}
-                  className={`btn-3d w-full p-4 rounded-2xl font-black text-white flex items-center justify-center gap-2
-                    ${isCorrect ? 'bg-green-500 border-green-700 hover:bg-green-400' : 'bg-slate-800 border-slate-950 hover:bg-slate-700'}
-                  `}
-                >
+                <button onClick={nextCase} className={`btn-3d w-full p-4 rounded-2xl font-black text-white flex items-center justify-center gap-2 ${isCorrect ? 'bg-green-500 border-green-700 hover:bg-green-400' : 'bg-slate-800 border-slate-950 hover:bg-slate-700'}`}>
                   {isCorrect ? 'CONTINUAR' : 'TENTAR OUTRO'} <ArrowRight size={20} />
                 </button>
              </div>
