@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Header from '../components/Header';
 import Navbar from '../components/Navbar';
 import { CASOS_PSICOLOGIA } from '../lib/database';
+import { CARDS_DATABASE } from '../lib/cardsData'; // IMPORTANTE: Importamos o banco de cartas
 import { Play, Star, CheckCircle2, XCircle, Sparkles, Loader2, Heart, Flame, ArrowRight, Brain, Volume2, VolumeX } from 'lucide-react';
 
 export default function Home() {
@@ -18,7 +19,6 @@ export default function Home() {
   const [soundEnabled, setSoundEnabled] = useState(true);
 
   // --- REFERÊNCIAS DE ÁUDIO ---
-  // CORREÇÃO AQUI: Mudamos de /sounds/ para /sons/ para bater com sua pasta
   const clickAudioRef = useRef<HTMLAudioElement>(null);
   const correctAudioRef = useRef<HTMLAudioElement>(null);
   const wrongAudioRef = useRef<HTMLAudioElement>(null);
@@ -26,7 +26,6 @@ export default function Home() {
   const playSound = (type: 'click' | 'correct' | 'wrong') => {
     if (!soundEnabled) return;
     
-    // Reseta o áudio anterior
     if (clickAudioRef.current) { clickAudioRef.current.pause(); clickAudioRef.current.currentTime = 0; }
     if (correctAudioRef.current) { correctAudioRef.current.pause(); correctAudioRef.current.currentTime = 0; }
     if (wrongAudioRef.current) { wrongAudioRef.current.pause(); wrongAudioRef.current.currentTime = 0; }
@@ -67,9 +66,43 @@ export default function Home() {
     if (correct) {
       playSound('correct');
       setCombo(combo + 1);
+      
+      // 1. ATUALIZA XP
       const newXp = xp + 50 + (combo * 10);
       setXp(newXp);
       localStorage.setItem('psyquest_xp', newXp.toString());
+
+      // 2. LÓGICA DE DROP DE CARTAS (NOVIDADE)
+      // 30% de chance de ganhar uma carta ao acertar
+      if (Math.random() < 0.3) {
+        const randomCard = CARDS_DATABASE[Math.floor(Math.random() * CARDS_DATABASE.length)];
+        
+        // Lê o que o usuário já tem
+        const currentCollection = JSON.parse(localStorage.getItem('psyquest_cards') || '[]');
+        const currentEssence = parseInt(localStorage.getItem('psyquest_essence') || '0');
+
+        if (currentCollection.includes(randomCard.id)) {
+          // CARTA REPETIDA -> VIRA ESSÊNCIA
+          const essenceGain = randomCard.disenchantValue;
+          const newEssence = currentEssence + essenceGain;
+          localStorage.setItem('psyquest_essence', newEssence.toString());
+          
+          // Pequeno delay para o alerta não atropelar o som
+          setTimeout(() => {
+            alert(`♻️ CARTA REPETIDA: ${randomCard.name}\nConvertida em +${essenceGain} Essência!`);
+          }, 500);
+          
+        } else {
+          // CARTA NOVA -> ADICIONA AO ÁLBUM
+          const newCollection = [...currentCollection, randomCard.id];
+          localStorage.setItem('psyquest_cards', JSON.stringify(newCollection));
+          
+          setTimeout(() => {
+            alert(`🎉 CARTA NOVA DESBLOQUEADA!\n${randomCard.name} (${randomCard.rarity.toUpperCase()})`);
+          }, 500);
+        }
+      }
+
     } else {
       playSound('wrong');
       setCombo(0);
@@ -91,7 +124,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen pb-32 text-slate-800">
-      {/* --- ELEMENTOS DE ÁUDIO INVISÍVEIS (CORRIGIDOS PARA /sons/) --- */}
+      {/* --- ELEMENTOS DE ÁUDIO INVISÍVEIS --- */}
       <audio ref={clickAudioRef} src="/sons/click.mp3" preload="auto" />
       <audio ref={correctAudioRef} src="/sons/correct.mp3" preload="auto" />
       <audio ref={wrongAudioRef} src="/sons/wrong.mp3" preload="auto" />
