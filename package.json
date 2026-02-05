@@ -14,7 +14,7 @@
     "lucide-react": "0.378.0",
     "clsx": "2.1.1",
     "tailwind-merge": "2.3.0",
-    use-sound": "^4.0.1"
+    "use-sound": "^4.0.1"
   },
   "devDependencies": {
     "@types/node": "20.12.12",
