@@ -1,22 +1,22 @@
 "use client";
 import React, { useEffect, useState } from 'react';
 import Navbar from '../../components/Navbar';
-import { Settings, Award, TrendingUp, Zap } from 'lucide-react'; // Removi o ícone 'User' pois vamos usar a imagem
-import { SHOP_ITEMS } from '../../lib/shopData'; 
+import { Award, TrendingUp, Zap } from 'lucide-react';
+import { SHOP_ITEMS } from '../../lib/shopData';
 
 export default function Profile() {
   const [xp, setXp] = useState(0);
-  const [skinImage, setSkinImage] = useState('/avatar-default.png'); // Imagem padrão
+  const [skinImage, setSkinImage] = useState('/avatar-default.png'); // Começa com o padrão
 
   useEffect(() => {
-    // Carrega XP
+    // 1. Carrega XP do navegador
     const savedXp = localStorage.getItem('psyquest_xp');
     if (savedXp) setXp(parseInt(savedXp));
 
-    // CARREGA SKIN EQUIPADA
+    // 2. Carrega a Skin que o usuário equipou na Loja
     const savedSkinId = localStorage.getItem('psyquest_skin');
     if (savedSkinId) {
-       // Procura no banco de dados qual a URL dessa skin
+       // Procura no banco de dados qual a URL/Imagem dessa skin
        const item = SHOP_ITEMS.find(i => i.id === savedSkinId);
        if (item && item.type === 'skin') {
          setSkinImage(item.image);
@@ -24,51 +24,25 @@ export default function Profile() {
     }
   }, []);
 
-  // ... (cálculo de nível continua igual)
-
-  return (
-    // ...
-        {/* DENTRO DO JSX, ONDE TINHA A TAG <IMG> */}
-        <div className="w-32 h-32 ...">
-           <img 
-             src={skinImage} // AGORA USA A VARIÁVEL DE ESTADO
-             alt="Avatar" 
-             className="..."
-           />
-           {/* ... */}
-        </div>
-    // ...
-  );
-}
-
-export default function Profile() {
-  const [xp, setXp] = useState(0);
-
-  useEffect(() => {
-    const savedXp = localStorage.getItem('psyquest_xp');
-    if (savedXp) setXp(parseInt(savedXp));
-  }, []);
-
+  // Cálculos automáticos de Nível
   const level = Math.floor(xp / 1000) + 1;
   const nextLevelXp = level * 1000;
   const progress = ((xp % 1000) / 1000) * 100;
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-24">
-      {/* Cabeçalho do Perfil com o BONEQUINHO */}
+      {/* Cabeçalho do Perfil */}
       <div className="bg-white p-6 pb-12 rounded-b-[2.5rem] shadow-sm border-b border-slate-100 text-center relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
         
-        {/* AQUI ESTÁ A MUDANÇA: O Avatar do Usuário */}
+        {/* Avatar Dinâmico (Muda conforme a compra) */}
         <div className="w-32 h-32 bg-indigo-50 rounded-full mx-auto mb-4 flex items-center justify-center border-4 border-white shadow-xl relative z-10 overflow-hidden">
-          {/* A Imagem do Bonequinho */}
           <img 
-            src="/avatar-default.png" 
+            src={skinImage} 
             alt="Avatar do Estudante" 
             className="w-full h-full object-cover transform hover:scale-110 transition-transform duration-500"
           />
           
-          {/* Badge de Nível */}
           <div className="absolute -bottom-0 bg-indigo-600 text-white text-xs font-black px-4 py-1 rounded-full border-2 border-white z-20 shadow-md">
             NÍVEL {level}
           </div>
