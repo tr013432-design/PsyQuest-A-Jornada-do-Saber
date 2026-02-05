@@ -3,28 +3,24 @@ import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import Navbar from '../components/Navbar';
 import { CASOS_PSICOLOGIA } from '../lib/database';
-import { Play, Star, CheckCircle2, XCircle, Trophy, Sparkles, Loader2, Heart, Flame, ArrowRight } from 'lucide-react';
+import { Play, Star, CheckCircle2, XCircle, Sparkles, Loader2, Heart, Flame, ArrowRight, Brain, Zap } from 'lucide-react';
 
 export default function Home() {
-  // --- ESTADOS DO JOGO ---
   const [gameState, setGameState] = useState<'home' | 'playing' | 'feedback'>('home');
   const [xp, setXp] = useState(0);
   const [loadingAI, setLoadingAI] = useState(false);
   const [activeCase, setActiveCase] = useState<any>(CASOS_PSICOLOGIA[0]);
   
-  // --- NOVOS ESTADOS DE GAMIFICAÇÃO ---
-  const [lives, setLives] = useState(5); // Sistema de Vidas
-  const [combo, setCombo] = useState(0); // Sistema de Combo
-  const [animationClass, setAnimationClass] = useState(''); // Controla o visual (shake/pop)
+  const [lives, setLives] = useState(5);
+  const [combo, setCombo] = useState(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
 
-  // Carrega XP salvo
   useEffect(() => {
     const savedXp = localStorage.getItem('psyquest_xp');
     if (savedXp) setXp(parseInt(savedXp));
   }, []);
 
-  // --- FUNÇÃO QUE CHAMA A IA ---
   const generateNewCase = async () => {
     setLoadingAI(true);
     try {
@@ -32,219 +28,206 @@ export default function Home() {
       const newCase = await response.json();
       setActiveCase(newCase);
     } catch (error) {
-      // Fallback silencioso se der erro na IA
       setActiveCase(CASOS_PSICOLOGIA[Math.floor(Math.random() * CASOS_PSICOLOGIA.length)]);
     } finally {
       setLoadingAI(false);
     }
   };
 
-  // --- LÓGICA DE RESPOSTA ---
   const handleAnswer = (index: number) => {
     setSelectedOption(index);
-    const isCorrect = index === activeCase.correctIndex;
+    const correct = index === activeCase.correctIndex;
+    setIsCorrect(correct);
     
-    // 1. Efeito Visual Imediato
-    if (isCorrect) {
-      setAnimationClass('animate-pop');
-      const newCombo = combo + 1;
-      setCombo(newCombo);
-      
-      // Bônus por combo
-      const comboBonus = newCombo > 2 ? 20 : 0;
-      const newXp = xp + 50 + comboBonus;
-      
+    if (correct) {
+      setCombo(combo + 1);
+      const newXp = xp + 50 + (combo * 10);
       setXp(newXp);
       localStorage.setItem('psyquest_xp', newXp.toString());
     } else {
-      setAnimationClass('animate-shake');
-      setCombo(0); // Reseta combo
-      setLives((prev) => Math.max(0, prev - 1)); // Perde vida
+      setCombo(0);
+      setLives((prev) => Math.max(0, prev - 1));
     }
-
-    // 2. Espera a animação acabar para mostrar o feedback
-    setTimeout(() => {
-      setGameState('feedback');
-      setAnimationClass('');
-    }, 600);
+    setGameState('feedback');
   };
 
-  // Reiniciar Jogo se perder vidas
-  const resetGame = () => {
-    setLives(5);
+  const nextCase = () => {
     setGameState('home');
-    setCombo(0);
     setSelectedOption(null);
+    setIsCorrect(null);
+    if (lives === 0) {
+      setLives(5);
+      setCombo(0);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F4F8] pb-28 font-sans selection:bg-indigo-100">
-      {/* Header Fixo */}
+    <div className="min-h-screen pb-32 text-slate-800">
       <Header />
       
-      <main className="max-w-md mx-auto p-5">
+      <main className="max-w-md mx-auto p-4 pt-6">
         
-        {/* --- TELA INICIAL (DASHBOARD) --- */}
+        {/* --- HUD FLUTUANTE --- */}
         {gameState === 'home' && (
-          <div className="animate-slide-up space-y-6">
-            
-            {/* Status de Vidas e Combo */}
-            <div className="flex justify-between items-center bg-white p-4 rounded-3xl shadow-sm border border-slate-100">
-              <div className="flex items-center gap-2 text-rose-500 font-black">
-                <Heart className="fill-rose-500 animate-pulse" size={24} />
-                <span className="text-xl">{lives}</span>
-              </div>
-              <div className="flex items-center gap-2 text-orange-500 font-black">
-                <Flame className={`${combo > 0 ? 'fill-orange-500' : 'text-slate-300'}`} size={24} />
-                <span className="text-xl">{combo}x</span>
-              </div>
+          <div className="flex justify-between items-center mb-8 px-2">
+            <div className="bg-slate-900/40 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-2 flex items-center gap-2 text-white shadow-lg">
+              <Heart className="fill-rose-500 text-rose-500 animate-pulse" size={24} />
+              <span className="font-black text-xl">{lives}</span>
             </div>
+            
+            <div className="bg-slate-900/40 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-2 flex items-center gap-2 text-white shadow-lg">
+              <Flame className={`${combo > 1 ? 'fill-orange-500 text-orange-500 animate-bounce' : 'text-slate-400'}`} size={24} />
+              <span className="font-black text-xl">{combo}x</span>
+            </div>
+          </div>
+        )}
 
-            {/* CARD PRINCIPAL (Estilo Cartão de Jogo) */}
-            <div className="bg-indigo-600 rounded-[2.5rem] p-1 shadow-2xl shadow-indigo-200 transform transition-all hover:scale-[1.02]">
-              <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-[2.4rem] p-8 text-white relative overflow-hidden">
-                {/* Efeito de fundo */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 rounded-full -mr-10 -mt-10"></div>
-                
-                <div className="flex justify-between items-start mb-4">
-                  <span className="bg-indigo-500/50 px-3 py-1 rounded-full text-[10px] font-black uppercase border border-white/20 shadow-sm backdrop-blur-sm">
-                    {activeCase.isGenerated ? '✨ IA Gerada' : '🔥 Desafio Diário'}
-                  </span>
-                  {loadingAI && <Loader2 className="animate-spin text-white opacity-50" />}
-                </div>
+        {/* --- TELA INICIAL (DASHBOARD GAMIFICADA) --- */}
+        {gameState === 'home' && (
+          <div className="space-y-8 animate-in slide-in-from-bottom-8 duration-700">
+            
+            {/* O "DECK" DE MISSÕES */}
+            <div className="relative group">
+              {/* Cartões decorativos de fundo (Stack Effect) */}
+              <div className="absolute top-4 left-4 right-4 h-full bg-purple-500 rounded-[2.5rem] rotate-3 opacity-60 scale-95 -z-10 transition-transform group-hover:rotate-6"></div>
+              <div className="absolute top-2 left-2 right-2 h-full bg-indigo-500 rounded-[2.5rem] -rotate-2 opacity-80 scale-95 -z-10 transition-transform group-hover:-rotate-3"></div>
+              
+              {/* Cartão Principal */}
+              <div className="bg-white rounded-[2.5rem] p-1.5 shadow-2xl border-b-8 border-slate-200">
+                <div className="bg-gradient-to-b from-indigo-50 to-white rounded-[2.2rem] p-6 text-center relative overflow-hidden">
+                  
+                  {/* Badge de Categoria */}
+                  <div className="inline-flex items-center gap-1 bg-indigo-100 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 border border-indigo-200">
+                    {activeCase.isGenerated ? <Sparkles size={12}/> : <Brain size={12}/>}
+                    {activeCase.isGenerated ? 'Gerado por IA' : 'Caso Oficial'}
+                  </div>
 
-                <h2 className="text-3xl font-black mb-3 leading-tight tracking-tight drop-shadow-md">
-                  {activeCase.title}
-                </h2>
-                <p className="text-indigo-100 text-sm mb-8 leading-relaxed font-medium opacity-90 min-h-[60px]">
-                   {loadingAI ? 'Analisando banco de dados...' : activeCase.context}
-                </p>
+                  <h2 className="text-3xl font-black text-slate-800 mb-3 leading-tight">
+                    {activeCase.title}
+                  </h2>
+                  <p className="text-slate-500 font-bold text-sm leading-relaxed mb-8 line-clamp-3">
+                    {loadingAI ? "A IA está criando um caso único para você..." : activeCase.context}
+                  </p>
 
-                <div className="grid grid-cols-2 gap-3">
+                  {/* BOTÃO GIGANTE DE AÇÃO */}
                   <button 
                     onClick={() => setGameState('playing')}
-                    disabled={lives === 0 || loadingAI}
-                    className="col-span-2 bg-white text-indigo-700 font-black py-4 rounded-2xl shadow-[0_4px_0_#c7d2fe] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2 text-lg hover:bg-indigo-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={loadingAI || lives === 0}
+                    className="btn-3d w-full bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-800 p-5 rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-indigo-500/30 disabled:opacity-50 disabled:border-slate-400 disabled:bg-slate-400"
                   >
-                    {lives > 0 ? 'JOGAR' : 'SEM VIDAS'} <Play size={20} fill="currentColor" />
+                    <span className="text-xl font-black tracking-wide">
+                      {lives > 0 ? 'COMEÇAR MISSÃO' : 'SEM VIDAS'}
+                    </span>
+                    <Play size={24} fill="currentColor" />
                   </button>
-                  
+
+                  {/* Botão Secundário IA */}
                   <button 
                     onClick={generateNewCase}
-                    className="col-span-2 bg-indigo-800/40 text-indigo-100 font-bold py-3 rounded-xl hover:bg-indigo-800/60 transition-colors text-xs uppercase tracking-widest flex items-center justify-center gap-2 border border-white/10"
+                    className="mt-4 text-indigo-400 text-xs font-black uppercase tracking-widest hover:text-indigo-600 flex items-center justify-center gap-1 mx-auto transition-colors"
                   >
-                    <Sparkles size={14} /> Gerar Novo Caso
+                    {loadingAI ? <Loader2 className="animate-spin w-3 h-3"/> : <Sparkles className="w-3 h-3" />}
+                    Gerar Outro Caso
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* TRILHAS (Estilo Botões Grandes) */}
+            {/* ATALHOS RÁPIDOS */}
+            <h3 className="text-white/80 font-black uppercase text-sm tracking-widest pl-4">Suas Trilhas</h3>
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white p-5 rounded-3xl border-b-4 border-slate-100 active:border-b-0 active:translate-y-1 transition-all cursor-pointer">
-                <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-2 shadow-sm">
-                  <Star size={24} fill="currentColor" />
+              <div className="btn-3d bg-white border-slate-200 p-4 rounded-3xl flex flex-col items-center gap-2 cursor-pointer active:scale-95">
+                <div className="w-12 h-12 bg-blue-100 text-blue-500 rounded-2xl flex items-center justify-center">
+                  <Brain size={24} />
                 </div>
-                <h3 className="font-black text-slate-700">Psicologia</h3>
-                <p className="text-xs text-slate-400 font-bold">Nível 1</p>
+                <span className="font-black text-slate-700">Psicologia</span>
               </div>
-              <div className="bg-white p-5 rounded-3xl border-b-4 border-slate-100 active:border-b-0 active:translate-y-1 transition-all cursor-pointer opacity-50 grayscale">
-                <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mb-2 shadow-sm">
-                  <Trophy size={24} fill="currentColor" />
+              <div className="btn-3d bg-white border-slate-200 p-4 rounded-3xl flex flex-col items-center gap-2 cursor-pointer active:scale-95 grayscale opacity-60">
+                <div className="w-12 h-12 bg-emerald-100 text-emerald-500 rounded-2xl flex items-center justify-center">
+                  <Star size={24} />
                 </div>
-                <h3 className="font-black text-slate-700">Pedagogia</h3>
-                <p className="text-xs text-slate-400 font-bold">Bloqueado</p>
+                <span className="font-black text-slate-700">Pedagogia</span>
               </div>
             </div>
           </div>
         )}
 
-        {/* --- TELA DE GAMEPLAY (QUIZ SHOW) --- */}
+        {/* --- TELA DE GAMEPLAY (QUIZ) --- */}
         {gameState === 'playing' && (
-          <div className="animate-slide-up">
-            {/* Barra de Progresso do Caso */}
-            <div className="flex items-center gap-3 mb-6">
-              <button onClick={() => setGameState('home')} className="text-slate-400 hover:text-slate-600 font-bold text-xs uppercase">Sair</button>
-              <div className="flex-1 h-3 bg-slate-200 rounded-full overflow-hidden">
-                <div className="h-full bg-indigo-500 w-[80%] rounded-full animate-pulse"></div>
-              </div>
-              <div className="flex items-center gap-1 text-rose-500 font-black">
-                <Heart size={16} fill="currentColor" /> {lives}
-              </div>
-            </div>
+          <div className="animate-in zoom-in-95 duration-300">
+             {/* Barra de Progresso Customizada */}
+             <div className="flex items-center gap-4 mb-8">
+                <button onClick={() => setGameState('home')} className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center text-white backdrop-blur-sm">
+                  <XCircle size={20} />
+                </button>
+                <div className="flex-1 h-4 bg-slate-900/30 rounded-full overflow-hidden border border-white/10">
+                  <div className="h-full bg-gradient-to-r from-indigo-400 to-purple-400 w-2/3 rounded-full animate-pulse shadow-[0_0_15px_rgba(167,139,250,0.5)]"></div>
+                </div>
+             </div>
 
-            <div className="bg-white rounded-[2rem] p-8 border-b-8 border-slate-100 shadow-sm mb-6">
-              <h2 className="text-xl font-black text-slate-800 mb-6 leading-tight">
-                {activeCase.question}
-              </h2>
-              <div className="space-y-3">
-                {activeCase.options.map((opt: string, i: number) => (
-                  <button 
-                    key={i} 
-                    onClick={() => handleAnswer(i)}
-                    disabled={selectedOption !== null}
-                    className={`w-full p-5 text-left border-2 rounded-2xl font-bold transition-all transform active:scale-95 duration-200
-                      ${selectedOption === i ? animationClass : 'border-slate-100 text-slate-600 hover:border-indigo-400 hover:bg-indigo-50'}
-                    `}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 text-sm font-black
-                        ${selectedOption === i ? 'border-transparent bg-indigo-600 text-white' : 'border-slate-200 text-slate-400'}
-                      `}>
+             <div className="bg-white rounded-[2.5rem] p-8 shadow-2xl border-b-8 border-slate-200 min-h-[50vh] flex flex-col justify-between">
+                <div>
+                  <span className="text-indigo-500 font-black text-xs uppercase tracking-widest mb-4 block">Pergunta do Caso</span>
+                  <h2 className="text-2xl font-black text-slate-800 leading-tight mb-8">
+                    {activeCase.question}
+                  </h2>
+                </div>
+                
+                <div className="space-y-3">
+                  {activeCase.options.map((opt: string, i: number) => (
+                    <button 
+                      key={i}
+                      onClick={() => handleAnswer(i)}
+                      className="btn-3d w-full bg-slate-50 hover:bg-indigo-50 border-slate-200 text-slate-600 font-bold p-5 rounded-2xl text-left flex items-center gap-4 group active:border-indigo-500"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-white border-2 border-slate-200 flex items-center justify-center font-black text-slate-400 group-hover:border-indigo-500 group-hover:text-indigo-500 transition-colors">
                         {['A', 'B', 'C', 'D'][i]}
                       </div>
-                      {opt}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
+                      <span className="flex-1">{opt}</span>
+                    </button>
+                  ))}
+                </div>
+             </div>
           </div>
         )}
 
         {/* --- TELA DE FEEDBACK (RESULTADO) --- */}
         {gameState === 'feedback' && (
-          <div className="fixed inset-0 z-50 bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
-             <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 text-center shadow-2xl animate-in zoom-in-95 duration-300 relative overflow-hidden">
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in">
+             <div className={`w-full max-w-sm bg-white rounded-[2.5rem] p-8 text-center shadow-2xl animate-in slide-in-from-bottom-10 
+               ${isCorrect ? 'border-b-8 border-green-200' : 'border-b-8 border-rose-200'}`}>
                 
-                {/* Efeito de Fundo */}
-                <div className={`absolute top-0 left-0 w-full h-2 ${selectedOption === activeCase.correctIndex ? 'bg-green-500' : 'bg-rose-500'}`}></div>
-
-                <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl border-4 border-white
-                  ${selectedOption === activeCase.correctIndex ? 'bg-green-100 text-green-600' : 'bg-rose-100 text-rose-600'}
-                `}>
-                  {selectedOption === activeCase.correctIndex ? <CheckCircle2 size={48} /> : <XCircle size={48} />}
+                <div className={`w-24 h-24 mx-auto -mt-20 rounded-full flex items-center justify-center border-8 border-[#f3f4f6] shadow-xl mb-6
+                  ${isCorrect ? 'bg-green-500 text-white' : 'bg-rose-500 text-white'}`}>
+                  {isCorrect ? <CheckCircle2 size={48} className="animate-bounce" /> : <XCircle size={48} className="animate-pulse" />}
                 </div>
 
-                <h2 className={`text-3xl font-black mb-2 uppercase tracking-tight
-                  ${selectedOption === activeCase.correctIndex ? 'text-green-600' : 'text-rose-600'}
-                `}>
-                  {selectedOption === activeCase.correctIndex ? 'Fantástico!' : 'Que pena!'}
+                <h2 className={`text-3xl font-black mb-2 uppercase italic ${isCorrect ? 'text-green-600' : 'text-rose-600'}`}>
+                  {isCorrect ? 'Brilhante!' : 'Ops!'}
                 </h2>
                 
-                {selectedOption === activeCase.correctIndex && combo > 1 && (
-                  <div className="inline-block bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-xs font-black uppercase mb-4 animate-bounce">
-                    🔥 Combo {combo}x (+20 XP)
-                  </div>
-                )}
+                <p className="text-slate-500 font-bold text-sm mb-6 px-4">
+                  {isCorrect 
+                    ? `Você ganhou +${50 + (combo * 10)} XP! Continue o combo!` 
+                    : 'Não desanime. Analise o feedback abaixo:'}
+                </p>
 
-                <div className="bg-slate-50 p-5 rounded-2xl text-slate-600 font-medium text-sm leading-relaxed mb-8 border border-slate-100 text-left">
-                  <span className="block text-xs font-black text-slate-400 uppercase mb-2">Explicação Pedagógica:</span>
-                  {activeCase.explanation}
+                <div className="bg-slate-50 p-4 rounded-2xl text-left border border-slate-100 mb-8">
+                  <div className="flex items-center gap-2 mb-2 text-indigo-600 font-black text-xs uppercase tracking-widest">
+                    <Brain size={14} /> Explicação
+                  </div>
+                  <p className="text-slate-600 text-sm font-medium leading-relaxed">
+                    {activeCase.explanation}
+                  </p>
                 </div>
 
                 <button 
-                  onClick={() => {
-                    setGameState('home');
-                    setSelectedOption(null);
-                    setAnimationClass('');
-                    if (lives === 0) resetGame();
-                  }} 
-                  className={`w-full font-black py-4 rounded-2xl shadow-lg active:translate-y-1 transition-all flex items-center justify-center gap-2
-                    ${lives === 0 ? 'bg-slate-800 text-white' : 'bg-indigo-600 text-white shadow-indigo-200'}
+                  onClick={nextCase}
+                  className={`btn-3d w-full p-4 rounded-2xl font-black text-white flex items-center justify-center gap-2
+                    ${isCorrect ? 'bg-green-500 border-green-700 hover:bg-green-400' : 'bg-slate-800 border-slate-950 hover:bg-slate-700'}
                   `}
                 >
-                  {lives === 0 ? 'REINICIAR TUDO' : 'CONTINUAR'} <ArrowRight size={20} />
+                  {isCorrect ? 'CONTINUAR' : 'TENTAR OUTRO'} <ArrowRight size={20} />
                 </button>
              </div>
           </div>
