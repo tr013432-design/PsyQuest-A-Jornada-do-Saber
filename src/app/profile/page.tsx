@@ -2,6 +2,44 @@
 import React, { useEffect, useState } from 'react';
 import Navbar from '../../components/Navbar';
 import { Settings, Award, TrendingUp, Zap } from 'lucide-react'; // Removi o ícone 'User' pois vamos usar a imagem
+import { SHOP_ITEMS } from '../../lib/shopData'; 
+
+export default function Profile() {
+  const [xp, setXp] = useState(0);
+  const [skinImage, setSkinImage] = useState('/avatar-default.png'); // Imagem padrão
+
+  useEffect(() => {
+    // Carrega XP
+    const savedXp = localStorage.getItem('psyquest_xp');
+    if (savedXp) setXp(parseInt(savedXp));
+
+    // CARREGA SKIN EQUIPADA
+    const savedSkinId = localStorage.getItem('psyquest_skin');
+    if (savedSkinId) {
+       // Procura no banco de dados qual a URL dessa skin
+       const item = SHOP_ITEMS.find(i => i.id === savedSkinId);
+       if (item && item.type === 'skin') {
+         setSkinImage(item.image);
+       }
+    }
+  }, []);
+
+  // ... (cálculo de nível continua igual)
+
+  return (
+    // ...
+        {/* DENTRO DO JSX, ONDE TINHA A TAG <IMG> */}
+        <div className="w-32 h-32 ...">
+           <img 
+             src={skinImage} // AGORA USA A VARIÁVEL DE ESTADO
+             alt="Avatar" 
+             className="..."
+           />
+           {/* ... */}
+        </div>
+    // ...
+  );
+}
 
 export default function Profile() {
   const [xp, setXp] = useState(0);
